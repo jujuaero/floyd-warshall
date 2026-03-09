@@ -1,0 +1,15 @@
+Automate: automate_4.txt
+Deterministe ? True
+Standard ? True
+Complet ? False
+
+États et transitions initiales:
+in/out |  Etat   |              a                |
+ E     |0        | 1,                            |
+       |1        |                               |
+
+Après complétion et déterminisation:
+in/out |  Etat   |              a                |
+ E     |0        | 1 ,                           |
+       |1        | P,                            |
+       |P        | P,                            |

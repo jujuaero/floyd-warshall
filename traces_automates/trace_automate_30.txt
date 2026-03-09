@@ -1,0 +1,20 @@
+Automate: automate_30.txt
+Deterministe ? True
+Standard ? True
+Complet ? True
+
+États et transitions initiales:
+in/out |  Etat   |              a                |
+ S     |0        | 3,                            |
+ E     |1        | 2,                            |
+       |2        | 3,                            |
+ S     |3        | 4,                            |
+ S     |4        | 0,                            |
+
+Après complétion et déterminisation:
+in/out |  Etat   |              a                |
+ S     |0        | 3,                            |
+ E     |1        | 2,                            |
+       |2        | 3,                            |
+ S     |3        | 4,                            |
+ S     |4        | 0,                            |

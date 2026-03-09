@@ -1,0 +1,19 @@
+Automate: automate_5.txt
+Deterministe ? False
+Standard ? False
+Complet ? False
+
+États et transitions initiales:
+in/out |  Etat   |              a                |              b                |
+       |0        | 0,                            | 0,                            |
+ E     |1        | 2,                            | 0,                            |
+ S     |2        |                               |                               |
+ E     |3        | 0,                            | 4,                            |
+ S     |4        |                               |                               |
+
+Après complétion et déterminisation:
+in/out |  Etat   |              a                |              b                |
+ E     |1 3      | 2 0 ,                         | 0 4 ,                         |
+ S     |2 0      | 0 ,                           | 0 ,                           |
+ S     |0 4      | 0 ,                           | 0 ,                           |
+       |0        | 0 ,                           | 0 ,                           |

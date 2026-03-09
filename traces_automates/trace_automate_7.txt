@@ -1,0 +1,14 @@
+Automate: automate_7.txt
+Deterministe ? False
+Standard ? False
+Complet ? False
+
+États et transitions initiales:
+in/out |  Etat   |              a                |
+ S     |0        |                               |
+ E     |1        | 1,0,                          |
+
+Après complétion et déterminisation:
+in/out |  Etat   |              a                |
+ E     |1        | 1 0 ,                         |
+ S     |1 0      | 1 0 ,                         |

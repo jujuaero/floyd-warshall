@@ -1,0 +1,19 @@
+Automate: automate_22.txt
+Deterministe ? False
+Standard ? False
+Complet ? False
+
+États et transitions initiales:
+in/out |  Etat   |              a                |              b                |              c                |              d                |
+       |0        |                               |                               |                               | 1,                            |
+ E S   |1        | 0,2,3,                        |                               |                               |                               |
+       |2        |                               | 3,                            |                               |                               |
+       |3        |                               |                               | 0,                            |                               |
+
+Après complétion et déterminisation:
+in/out |  Etat   |              a                |              b                |              c                |              d                |
+ E     |1        | 0 2 3 ,                       | P,                            | P,                            | P,                            |
+       |0 2 3    | P,                            | 3 ,                           | 0 ,                           | 1 ,                           |
+       |P        | P,                            | P,                            | P,                            | P,                            |
+       |3        | P,                            | P,                            | 0 ,                           | P,                            |
+       |0        | P,                            | P,                            | P,                            | 1 ,                           |

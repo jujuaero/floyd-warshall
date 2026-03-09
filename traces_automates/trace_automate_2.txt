@@ -1,0 +1,12 @@
+Automate: automate_2.txt
+Deterministe ? True
+Standard ? False
+Complet ? True
+
+États et transitions initiales:
+in/out |  Etat   |              a                |
+ E S   |0        | 0,                            |
+
+Après complétion et déterminisation:
+in/out |  Etat   |              a                |
+ E     |0        | 0 ,                           |

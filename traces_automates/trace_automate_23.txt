@@ -1,0 +1,21 @@
+Automate: automate_23.txt
+Deterministe ? True
+Standard ? True
+Complet ? False
+
+États et transitions initiales:
+in/out |  Etat   |              a                |              b                |              c                |              d                |
+ S     |0        |                               |                               |                               | 0,                            |
+ E     |1        | 2,                            |                               |                               |                               |
+       |2        | 2,                            | 3,                            |                               |                               |
+       |3        |                               | 3,                            | 4,                            |                               |
+       |4        |                               |                               | 4,                            | 0,                            |
+
+Après complétion et déterminisation:
+in/out |  Etat   |              a                |              b                |              c                |              d                |
+ S     |0        | P,                            | P,                            | P,                            | 0,                            |
+ E     |1        | 2,                            | P,                            | P,                            | P,                            |
+       |2        | 2,                            | 3,                            | P,                            | P,                            |
+       |3        | P,                            | 3,                            | 4,                            | P,                            |
+       |4        | P,                            | P,                            | 4,                            | 0,                            |
+       |P        | P,                            | P,                            | P,                            | P,                            |
