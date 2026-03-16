@@ -163,6 +163,6 @@ button_completer = tk.Button(frame_buttons, text="Compléter", command=completer
 button_standardiser = tk.Button(frame_buttons, text="Standardiser", command=standardiser_automate)
 button_complementaire = tk.Button(frame_buttons, text="Complémentaire", command=complementariser)
 button_minimiser = tk.Button(frame_buttons, text="Minimiser", command=minimisation)
-
+valeur=100
 # Lancement de la boucle principale
 root.mainloop()
