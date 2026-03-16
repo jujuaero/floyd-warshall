@@ -1,51 +1,324 @@
 import os
+import re
+from copy import deepcopy
 
 class Graphe:
-    def __init__(self,):
-        """structure de nos graphes en matrice -> nb_sommet : nombre de sommets; nb_arrete : nombre d'arrete; arrete : def arrete"""
+    """
+    Structure de données pour représenter un graphe orienté valué.
+    Utilise une matrice d'adjacence pour le stockage.
+    """
+    def __init__(self):
         self.nb_sommet = 0
         self.nb_arrete = 0
-        self.arrete = []
-        self.matrice = []
+        self.matrice = []  # Matrice d'adjacence [i][j] = poids de i à j (inf si pas d'arc)
+        self.next_matrice = []  # Matrice de suivi des chemins pour Floyd-Warshall
+    
+    @staticmethod
     def lire_graphe_depuis_fichier(nom_fichier):
+        """
+        Charge un graphe depuis un fichier texte.
+        
+        Format:
+        Ligne 1: nombre de sommets
+        Ligne 2: nombre d'arcs
+        Lignes suivantes: depart arrivee poids
+        
+        Args:
+            nom_fichier: nom du fichier (sans le chemin, cherche dans le dossier 'graphes/')
+            
+        Returns:
+            Graphe: l'objet graphe chargé
+        """
         graphe = Graphe()
         chemin_fichier = os.path.join("graphes", nom_fichier)
-        with open(chemin_fichier, 'r') as f:
-            lignes = [ligne.strip() for ligne in f.readlines()]
-        if lignes[0] !='':
-            graphe.nb_sommet = int(lignes[0])  # nombre de sommets
-        if lignes[1] != '':
-            graphe.nb_arrete = int(lignes[1])  # nombre d'arretes
-        for ligne in lignes[2:]:  # Lire les arretes
-            depart, arrivee, poids = ligne.split(' ')
-            graphe.arrete.append((depart,arrivee,poids))
+        
+        # utf-8-sig supprime automatiquement un BOM eventuel en debut de fichier
+        with open(chemin_fichier, 'r', encoding='utf-8-sig') as f:
+            lignes = [ligne.strip() for ligne in f.readlines() if ligne.strip()]
+        
+        if not lignes:
+            raise ValueError("Fichier graphe vide")
+        
+        if len(lignes) < 2:
+            raise ValueError(
+                "Format invalide: le fichier doit contenir au moins 2 lignes "
+                "(nombre de sommets, nombre d'arcs)."
+            )
+
+        graphe.nb_sommet = int(lignes[0])
+        graphe.nb_arrete = int(lignes[1])
+
+        if graphe.nb_sommet < 0 or graphe.nb_arrete < 0:
+            raise ValueError("Le nombre de sommets et d'arcs doit etre positif ou nul.")
+
+        lignes_arcs = lignes[2:]
+        if len(lignes_arcs) != graphe.nb_arrete:
+            raise ValueError(
+                f"Format invalide: {graphe.nb_arrete} arcs annonces mais "
+                f"{len(lignes_arcs)} lignes d'arcs trouvees."
+            )
+        
+        # Initialiser matrice avec l'infini partout, 0 sur la diagonale
+        graphe.matrice = [[float('inf')] * graphe.nb_sommet for _ in range(graphe.nb_sommet)]
+        for i in range(graphe.nb_sommet):
+            graphe.matrice[i][i] = 0
+        
+        # Remplir la matrice avec les arcs au format: depart arrivee poids
+        # Variante acceptee: "2 0-25" (poids negatif colle a l'arrivee).
+        for idx, ligne in enumerate(lignes_arcs, start=3):
+            parties = ligne.split()
+
+            if len(parties) == 3:
+                depart = int(parties[0])
+                arrivee = int(parties[1])
+                poids = int(parties[2])
+            elif len(parties) == 2:
+                # Cas de saisie compactee: "arrivee" et "poids" colles, ex: "0-25"
+                m = re.fullmatch(r"(\d+)(-\d+)", parties[1])
+                if not m:
+                    raise ValueError(
+                        f"Ligne {idx} invalide: attendu 'depart arrivee poids'."
+                    )
+                depart = int(parties[0])
+                arrivee = int(m.group(1))
+                poids = int(m.group(2))
+            else:
+                raise ValueError(
+                    f"Ligne {idx} invalide: attendu 'depart arrivee poids'."
+                )
+
+            if not (0 <= depart < graphe.nb_sommet and 0 <= arrivee < graphe.nb_sommet):
+                raise ValueError(
+                    f"Ligne {idx} invalide: sommets hors bornes [0, {graphe.nb_sommet - 1}]."
+                )
+
+            graphe.matrice[depart][arrivee] = poids
+        
         return graphe
-    def afficher_tableau_graphe(graphe):
-        """je veux que vous et dossier bleu sur une centaine de tableau tres clairs je clair luc ne pas je tellement sur vous"""
-        graphe.matrice=[]
-        for i in graphe.nb_sommet :
-            for j in graphe.nb_sommet :
-                graphe.matrice[i,j]='inf'
-"""
-        result = []
-        header = "in/out |  Etat   |" + "".join([largeur * espace + elt + largeur * espace + "  |" for elt in automate.alphabet])
-        result.append(header)
+    
+    def afficher_matrice_formatee(self, matrice=None, titre="Matrice d'adjacence"):
+        """
+        Affiche une matrice de manière lisible avec titres et alignement.
+        
+        Args:
+            matrice: matrice à afficher (None = utilise self.matrice)
+            titre: titre à afficher
+            
+        Returns:
+            str: représentation formatée de la matrice
+        """
+        if matrice is None:
+            matrice = self.matrice
+        
+        resultat = f"\n{titre}\n"
+        resultat += "=" * 80 + "\n"
+        
+        # Trouver la largeur maximale pour l'alignement
+        largeur_max = 6  # minimum
+        for i in range(len(matrice)):
+            for j in range(len(matrice[0])):
+                val = matrice[i][j]
+                if val == float('inf'):
+                    s = "∞"
+                elif val == float('-inf'):
+                    s = "-∞"
+                else:
+                    s = str(int(val))
+                largeur_max = max(largeur_max, len(s))
+        
+        largeur = largeur_max + 1
+        
+        # En-tête avec indices des colonnes
+        entete = "  K |"
+        for j in range(self.nb_sommet):
+            entete += f"{j:>{largeur}}"
+        resultat += entete + "\n"
+        resultat += "-" * len(entete) + "\n"
+        
+        # Lignes de la matrice
+        for i in range(len(matrice)):
+            ligne = f" {i}  |"
+            for j in range(len(matrice[0])):
+                val = matrice[i][j]
+                if val == float('inf'):
+                    s = "∞"
+                elif val == float('-inf'):
+                    s = "-∞"
+                else:
+                    s = str(int(val))
+                ligne += f"{s:>{largeur}}"
+            resultat += ligne + "\n"
+        
+        resultat += "=" * 80
+        return resultat
+    
+    def afficher_matrice_next_formatee(self, titre="Matrice Next (chemins)"):
+        """
+        Affiche la matrice 'next' de manière lisible.
+        Contient les indices du prochain sommet sur le chemin optimal.
+        
+        Args:
+            titre: titre à afficher
+            
+        Returns:
+            str: représentation formatée de la matrice next
+        """
+        if not self.next_matrice:
+            return ""
+        
+        resultat = f"\n{titre}\n"
+        resultat += "=" * 80 + "\n"
+        
+        largeur = 6
+        
+        # En-tête
+        entete = "  K |"
+        for j in range(self.nb_sommet):
+            entete += f"{j:>{largeur}}"
+        resultat += entete + "\n"
+        resultat += "-" * len(entete) + "\n"
+        
+        # Lignes
+        for i in range(len(self.next_matrice)):
+            ligne = f" {i}  |"
+            for j in range(len(self.next_matrice[0])):
+                val = self.next_matrice[i][j]
+                if val is None:
+                    s = "-"
+                else:
+                    s = str(val)
+                ligne += f"{s:>{largeur}}"
+            resultat += ligne + "\n"
+        
+        resultat += "=" * 80
+        return resultat
 
-        for etat in automate.etats:
-            ligne = ""
-            words = get_transition_etat(automate, etat)
 
-            if etat in automate.initiaux:
-                ligne = " E"
-            if etat in automate.terminaux:
-                ligne += " S"
-            ligne += espace * (n_ES - len(ligne) - 1) + "|" + etat
-            ligne += espace * (n_ES + n_etat - len(ligne) - 1) + "|"
+def floyd_warshall(graphe):
+    """
+    Exécute l'algorithme de Floyd-Warshall sur le graphe.
+    
+    Args:
+        graphe: objet Graphe à traiter
+        
+    Returns:
+        tuple: (matrice_finale, liste_matrices_intermediaires, liste_k_valides)
+        - matrice_finale: matrice L finale après l'algorithme
+        - liste_matrices_intermediaires: [L_0, L_1, ..., L_{n-1}] avant chaque itération k
+        - liste_k_valides: indices k pour lesquels les matrices ont été sauvegardées
+    """
+    n = graphe.nb_sommet
+    
+    # Initialiser L et next
+    L = deepcopy(graphe.matrice)
+    next_matrice = [[None] * n for _ in range(n)]
+    
+    # Initialiser la matrice next: si arc direct, le prochain sommet est j
+    for i in range(n):
+        for j in range(n):
+            if i != j and L[i][j] != float('inf'):
+                next_matrice[i][j] = j
+    
+    # Sauvegarder matrices intermédiaires
+    matrices_intermediaires = []
+    k_valides = []
+    
+    # L_0: avant la première itération
+    matrices_intermediaires.append(deepcopy(L))
+    k_valides.append(-1)  # -1 pour L_0 (avant toute itération)
+    
+    # Boucles de Floyd-Warshall
+    for k in range(n):
+        for i in range(n):
+            for j in range(n):
+                # Vérifier si passer par k améliore le chemin i->j
+                if L[i][k] != float('inf') and L[k][j] != float('inf'):
+                    nouveau_poids = L[i][k] + L[k][j]
+                    if nouveau_poids < L[i][j]:
+                        L[i][j] = nouveau_poids
+                        next_matrice[i][j] = next_matrice[i][k]
+        
+        # Sauvegarder L_k après l'itération k
+        matrices_intermediaires.append(deepcopy(L))
+        k_valides.append(k)
+    
+    # Sauvegarder les matrices finales dans le graphe
+    graphe.matrice = L  # Mettre à jour la matrice du graphe avec les distances minimales
+    graphe.next_matrice = next_matrice
+    
+    return L, matrices_intermediaires, k_valides
 
-            for word in automate.alphabet:
-                change = " "
-                for elt in words[word]:
-                    change += elt + ','
-                ligne += change + espace * (n_alpha - len(change) - 1) + '|'
-            result.append(ligne)
-        return "\n".join(result)"""
+
+def contient_circuit_absorbant(matrice_l):
+    """
+    Vérifie si le graphe contient au moins un circuit absorbant.
+    Un circuit absorbant est un cycle de poids négatif.
+    
+    Args:
+        matrice_l: matrice L après Floyd-Warshall
+        
+    Returns:
+        bool: True si circuit absorbant détecté, False sinon
+    """
+    n = len(matrice_l)
+    for i in range(n):
+        if matrice_l[i][i] < 0:
+            return True
+    return False
+
+
+def extraire_chemin(graphe, source, destination):
+    """
+    Extrait le chemin de poids minimal de source à destination.
+    
+    Args:
+        graphe: objet Graphe (doit avoir next_matrice remplie par Floyd-Warshall)
+        source: index du sommet source
+        destination: index du sommet destination
+        
+    Returns:
+        tuple: (chemin, distance)
+        - chemin: liste des sommets du chemin (ex: [0, 2, 4, 5])
+        - distance: poids total du chemin (inf si pas de chemin)
+    """
+    if not graphe.next_matrice:
+        return None, float('inf')
+    
+    # Récupérer la matrice L finale
+    L_final = graphe.matrice  # Supposé déjà mise à jour par Floyd-Warshall
+    
+    # Vérifier si chemin existe
+    if L_final[source][destination] == float('inf'):
+        return [], float('inf')
+    
+    chemin = [source]
+    courant = source
+    
+    # Suivre les indices next jusqu'à destination
+    while courant != destination:
+        prochain = graphe.next_matrice[courant][destination]
+        if prochain is None:
+            return [], float('inf')  # Pas de chemin
+        chemin.append(prochain)
+        courant = prochain
+    
+    distance = L_final[source][destination]
+    return chemin, distance
+
+
+def formater_chemin(chemin, distance):
+    """
+    Formate l'affichage d'un chemin de manière lisible.
+    
+    Args:
+        chemin: liste des sommets
+        distance: poids du chemin
+        
+    Returns:
+        str: représentation formatée du chemin
+    """
+    if not chemin or distance == float('inf'):
+        return "Pas de chemin entre ces deux sommets."
+    
+    chemin_str = " → ".join(str(s) for s in chemin)
+    return f"Chemin: {chemin_str}\nDistance: {distance}"

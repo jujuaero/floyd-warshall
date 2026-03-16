@@ -1,167 +1,213 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, scrolledtext
 from structure import *
 
-# Variable globale pour stocker l'automate actuel
-automate_actuel = None
+# Variable globale pour stocker le graphe actuel
+graphe_actuel = None
+matrice_L_finale = None
+matrices_intermediaires = None
 
-def voir_automate():
-    global automate_actuel
+def charger_graphe():
+    """Charge un graphe depuis un fichier numéroté"""
+    global graphe_actuel, matrice_L_finale, matrices_intermediaires
+    
     try:
-        automate_actuel = quel_automate()        
-        deterministe = est_deterministe(automate_actuel)
-        standard = est_standard(automate_actuel)
-        complet = est_complet(automate_actuel)
+        numero = int(entry_numero.get())
+        if numero < 1:
+            raise ValueError("Le numéro doit être positif.")
         
-        if deterministe:
-            resultats = "Deterministe ? Oui\n"
-            button_determiniser.pack_forget()
-        else:
-            resultats = "Deterministe ? Non\n"
-            button_determiniser.pack(side=tk.LEFT, padx=5)
-
-        if standard:
-            resultats += "Standard ? Oui\n"
-            button_completer.pack_forget()
-        else:
-            resultats += "Standard ? Non\n"
-            button_standardiser.pack(side=tk.LEFT, padx=5)
-
-        if complet:
-            resultats += "Complet ? Oui\n"
-            button_standardiser.pack_forget()
-        else:
-            resultats += "Complet ? Non\n"
-            button_completer.pack(side=tk.LEFT, padx=5)       
-
-        if est_minimal(automate_actuel):
-            button_minimiser.pack_forget()
-        else:
-            button_minimiser.pack(side=tk.LEFT, padx=5) 
-
-        resultats += "\n" + afficher_tableau_automate(automate_actuel)
-        text_result.delete(1.0, tk.END)
-        text_result.insert(tk.END, resultats)
-
-        button_complementaire.pack(side=tk.LEFT, padx=5)
-        entry_word.pack(pady=1)
-        button_estreconnu.pack(side=tk.LEFT, padx=1)
+        nom_fichier = f"graphe{numero}.txt"
+        graphe_actuel = Graphe.lire_graphe_depuis_fichier(nom_fichier)
+        matrice_L_finale = None
+        matrices_intermediaires = None
+        
+        # Afficher le graphe chargé
+        affichage = f"✓ Graphe {numero} chargé avec succès !\n"
+        affichage += f"  Sommets: {graphe_actuel.nb_sommet}\n"
+        affichage += f"  Arcs: {graphe_actuel.nb_arrete}\n"
+        affichage += graphe_actuel.afficher_matrice_formatee(titre="Matrice d'adjacence du graphe")
+        
+        text_output.config(state=tk.NORMAL)
+        text_output.delete(1.0, tk.END)
+        text_output.insert(tk.END, affichage)
+        text_output.config(state=tk.DISABLED)
+        
+        # Activer les boutons suivants
+        button_fw.config(state=tk.NORMAL)
+        button_nouveau.config(state=tk.NORMAL)
+        
+    except FileNotFoundError:
+        messagebox.showerror("Erreur", f"Fichier 'graphe{numero}.txt' non trouvé dans le dossier 'graphes/'")
     except ValueError as e:
-        messagebox.showerror("Erreur", str(e))
+        messagebox.showerror("Erreur", f"Entrée invalide: {e}")
+    except Exception as e:
+        messagebox.showerror("Erreur", f"Erreur lors du chargement: {e}")
 
-def quel_automate():
+
+def executer_floyd_warshall():
+    """Exécute l'algorithme de Floyd-Warshall"""
+    global graphe_actuel, matrice_L_finale, matrices_intermediaires
+    
+    if graphe_actuel is None:
+        messagebox.showwarning("Attention", "Veuillez d'abord charger un graphe.")
+        return
+    
     try:
-        numero = int(entry.get())
-        if numero < 1 or numero > 44:
-            raise ValueError("Le numéro doit être entre 1 et 44.")
-        nom_fichier = f"automate_{numero}.txt"
-        automate = lire_automate_depuis_fichier(nom_fichier)
-        return automate
-    except ValueError:
-        raise ValueError("Le numéro doit être un entier entre 1 et 44.")
+        # Exécuter l'algorithme
+        matrice_L_finale, matrices_intermediaires, k_valides = floyd_warshall(graphe_actuel)
+        
+        # Affichage des résultats
+        affichage = "EXÉCUTION DE FLOYD-WARSHALL\n"
+        affichage += "=" * 80 + "\n\n"
+        
+        # Afficher toutes les matrices intermédiaires
+        for idx, (k, matrice) in enumerate(zip(k_valides, matrices_intermediaires)):
+            if k == -1:
+                affichage += graphe_actuel.afficher_matrice_formatee(matrice, titre="L_0 (Initialisation)")
+            else:
+                affichage += graphe_actuel.afficher_matrice_formatee(matrice, titre=f"L_{k} (Après itération k={k})")
+            affichage += "\n\n"
+        
+        # Afficher matrice next
+        affichage += graphe_actuel.afficher_matrice_next_formatee()
+        affichage += "\n\n"
+        
+        # Détection circuit absorbant
+        affichage += "=" * 80 + "\n"
+        circuits = contient_circuit_absorbant(matrice_L_finale)
+        if circuits:
+            affichage += "⚠️  CIRCUIT ABSORBANT DÉTECTÉ !\n"
+            affichage += "La matrice contient au moins une valeur négative sur la diagonale.\n"
+            affichage += "Traitement ARRÊTÉ. Pas d'affichage de chemins.\n"
+        else:
+            affichage += "✓ Pas de circuit absorbant détecté.\n"
+            affichage += "Les chemins de valeur minimale peuvent être affichés.\n"
+        
+        text_output.config(state=tk.NORMAL)
+        text_output.delete(1.0, tk.END)
+        text_output.insert(tk.END, affichage)
+        text_output.config(state=tk.DISABLED)
+        
+        # Activer boutons chemins
+        if not circuits:
+            button_chemin.config(state=tk.NORMAL)
+        else:
+            button_chemin.config(state=tk.DISABLED)
+        
+    except Exception as e:
+        messagebox.showerror("Erreur", f"Erreur lors de l'exécution: {e}")
 
-def determinisation():
-    global automate_actuel
-    if est_deterministe(automate_actuel):
+
+def afficher_chemin():
+    """Affiche le chemin entre deux sommets"""
+    global graphe_actuel, matrice_L_finale
+    
+    if graphe_actuel is None or matrice_L_finale is None:
+        messagebox.showwarning("Attention", "Veuillez d'abord exécuter Floyd-Warshall.")
         return
-    determiniser(automate_actuel)
-    afficher_resultats(automate_actuel)
-
-def completer():
-    global automate_actuel
-    complet(automate_actuel)
-    afficher_resultats(automate_actuel)
-
-def standardiser_automate():
-    global automate_actuel
-    standardiser(automate_actuel)
-    afficher_resultats(automate_actuel)
-
-def complementariser():
-    global automate_actuel
-    complementaire(automate_actuel)
-    afficher_resultats(automate_actuel)
-
-def verifier_mot():
-    global automate_actuel
-    mot = entry_word.get()
-    if est_reconnu(automate_actuel, mot):
-        messagebox.showinfo("Mot reconnu", "Le mot est reconnu par l'automate.")
-    else:
-        messagebox.showinfo("Mot non reconnu", "Le mot n'est pas reconnu par l'automate.")
-
-def minimisation():
-    global automate_actuel
-    if est_minimal(automate_actuel):
-        return
-    minimiser(automate_actuel)
-    afficher_resultats(automate_actuel)
-
-def afficher_resultats(automate):
-    deterministe = est_deterministe(automate)
-    standard = est_standard(automate)
-    complet = est_complet(automate)
     
-    resultats = "Deterministe ? " + ("Oui" if deterministe else "Non") + "\n"
-    resultats += "Standard ? " + ("Oui" if standard else "Non") + "\n"
-    resultats += "Complet ? " + ("Oui" if complet else "Non") + "\n"
+    try:
+        source = int(entry_source.get())
+        destination = int(entry_destination.get())
+        
+        if not (0 <= source < graphe_actuel.nb_sommet):
+            raise ValueError(f"Sommet source doit être entre 0 et {graphe_actuel.nb_sommet - 1}")
+        if not (0 <= destination < graphe_actuel.nb_sommet):
+            raise ValueError(f"Sommet destination doit être entre 0 et {graphe_actuel.nb_sommet - 1}")
+        
+        chemin, distance = extraire_chemin(graphe_actuel, source, destination)
+        message = formater_chemin(chemin, distance)
+        
+        # Ajouter au texte existant
+        texte_actuel = text_output.get(1.0, tk.END)
+        nouvel_affichage = f"\n{'=' * 80}\nChemin de {source} à {destination}:\n{message}\n"
+        
+        text_output.config(state=tk.NORMAL)
+        text_output.insert(tk.END, nouvel_affichage)
+        text_output.config(state=tk.DISABLED)
+        text_output.see(tk.END)
+        
+    except ValueError as e:
+        messagebox.showerror("Erreur", f"Entrée invalide: {e}")
+    except Exception as e:
+        messagebox.showerror("Erreur", f"Erreur: {e}")
 
-    resultats += "\n" + afficher_tableau_automate(automate)
-    text_result.delete(1.0, tk.END)
-    text_result.insert(tk.END, resultats)
 
-        # Gestion de l'affichage des boutons
-    if deterministe:
-        button_determiniser.pack_forget()
-    else:
-        button_determiniser.pack(side=tk.LEFT, padx=5)
+def nouveau_graphe():
+    """Réinitialise pour charger un nouveau graphe"""
+    global graphe_actuel, matrice_L_finale, matrices_intermediaires
     
-    if standard:
-        button_standardiser.pack_forget()
-    else:
-        button_standardiser.pack(side=tk.LEFT, padx=5)
+    graphe_actuel = None
+    matrice_L_finale = None
+    matrices_intermediaires = None
     
-    if complet:
-        button_completer.pack_forget()
-    else:
-        button_completer.pack(side=tk.LEFT, padx=5)
+    entry_numero.delete(0, tk.END)
+    entry_source.delete(0, tk.END)
+    entry_destination.delete(0, tk.END)
     
-    if est_minimal(automate):
-        button_minimiser.pack_forget()
-    else:
-        button_minimiser.pack(side=tk.LEFT, padx=5)
+    text_output.config(state=tk.NORMAL)
+    text_output.delete(1.0, tk.END)
+    text_output.insert(tk.END, "Prêt à charger un nouveau graphe.\nEntrez le numéro du graphe (ex: 1, 2, 3...)")
+    text_output.config(state=tk.DISABLED)
+    
+    button_fw.config(state=tk.DISABLED)
+    button_chemin.config(state=tk.DISABLED)
+    button_numero.config(state=tk.NORMAL)
 
-# Création de la fenêtre principale
+
+# ========== CRÉATION FENÊTRE PRINCIPALE ==========
 root = tk.Tk()
-root.title("Vérification d'Automate")
+root.title("Floyd-Warshall - Chemins minimaux")
+root.geometry("1000x800")
 
-# Création des widgets
-label = tk.Label(root, text="Entrez le numéro de l'automate (1-44) :")
-label.pack(pady=10)
+# ========== FRAME CONTRÔLES ==========
+frame_controls = tk.Frame(root, bg="#f0f0f0", pady=10)
+frame_controls.pack(side=tk.TOP, fill=tk.X)
 
-entry = tk.Entry(root)
-entry.pack(pady=5)
+# Chargement de graphe
+label_numero = tk.Label(frame_controls, text="Numéro graphe:", bg="#f0f0f0")
+label_numero.pack(side=tk.LEFT, padx=5)
 
-button_verifier = tk.Button(root, text="Vérifier", command=voir_automate)
-button_verifier.pack(pady=20)
-entry.bind('<Return>', lambda event: voir_automate())
+entry_numero = tk.Entry(frame_controls, width=10)
+entry_numero.pack(side=tk.LEFT, padx=5)
+entry_numero.bind('<Return>', lambda e: charger_graphe())
 
-entry_word = tk.Entry(root, width=50)
-entry_word.pack_forget()
-button_estreconnu = tk.Button(root, text="Est reconnu?", command=verifier_mot)
-button_estreconnu.pack_forget()
+button_numero = tk.Button(frame_controls, text="Charger graphe", command=charger_graphe)
+button_numero.pack(side=tk.LEFT, padx=5)
 
-text_result = tk.Text(root, height=30, width=190)
-text_result.pack(pady=10)
+button_fw = tk.Button(frame_controls, text="Exécuter Floyd-Warshall", command=executer_floyd_warshall, state=tk.DISABLED)
+button_fw.pack(side=tk.LEFT, padx=5)
 
-# Création d'un frame pour les boutons
-frame_buttons = tk.Frame(root)
-frame_buttons.pack(pady=20)
+button_nouveau = tk.Button(frame_controls, text="Nouveau graphe", command=nouveau_graphe, state=tk.DISABLED)
+button_nouveau.pack(side=tk.LEFT, padx=5)
 
-button_determiniser = tk.Button(frame_buttons, text="Déterminiser", command=determinisation)
-button_completer = tk.Button(frame_buttons, text="Compléter", command=completer)
-button_standardiser = tk.Button(frame_buttons, text="Standardiser", command=standardiser_automate)
-button_complementaire = tk.Button(frame_buttons, text="Complémentaire", command=complementariser)
-button_minimiser = tk.Button(frame_buttons, text="Minimiser", command=minimisation)
-# Lancement de la boucle principale
+# ========== FRAME CHEMINS ==========
+frame_chemin = tk.Frame(root, bg="#f0f0f0", pady=10)
+frame_chemin.pack(side=tk.TOP, fill=tk.X)
+
+label_src = tk.Label(frame_chemin, text="Chemin de:", bg="#f0f0f0")
+label_src.pack(side=tk.LEFT, padx=5)
+
+entry_source = tk.Entry(frame_chemin, width=5)
+entry_source.pack(side=tk.LEFT, padx=5)
+
+label_dst = tk.Label(frame_chemin, text="à:", bg="#f0f0f0")
+label_dst.pack(side=tk.LEFT, padx=5)
+
+entry_destination = tk.Entry(frame_chemin, width=5)
+entry_destination.pack(side=tk.LEFT, padx=5)
+entry_destination.bind('<Return>', lambda e: afficher_chemin())
+
+button_chemin = tk.Button(frame_chemin, text="Afficher chemin", command=afficher_chemin, state=tk.DISABLED)
+button_chemin.pack(side=tk.LEFT, padx=5)
+
+# ========== TEXT OUTPUT ==========
+text_output = scrolledtext.ScrolledText(root, height=30, width=120, font=("Courier", 9))
+text_output.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+text_output.config(state=tk.DISABLED)
+
+text_output.insert(tk.END, "Bienvenue dans le programme Floyd-Warshall !\n\nÉtapes:\n1. Entrez le numéro d'un graphe\n2. Cliquez sur 'Charger graphe'\n3. Cliquez sur 'Exécuter Floyd-Warshall'\n4. Affichage optionnel des chemins minimaux\n5. Chargez un nouveau graphe ou quittez")
+text_output.config(state=tk.DISABLED)
+
+# ========== LANCEMENT ==========
 root.mainloop()
