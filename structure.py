@@ -11,7 +11,7 @@ class Graphe:
         self.nb_sommet = 0
         self.nb_arrete = 0
         self.matrice = []  # Matrice d'adjacence [i][j] = poids de i à j (inf si pas d'arc)
-        self.next_matrice = []  # Matrice de suivi des chemins pour Floyd-Warshall
+        self.next_matrice = []  # Matrice P des predecesseurs pour Floyd-Warshall
     
     @staticmethod
     def lire_graphe_depuis_fichier(nom_fichier):
@@ -103,14 +103,14 @@ class Graphe:
     
     def afficher_matrice_next_formatee(self, matrice_next=None, titre="Matrice Next (chemins)"):
         """
-        Affiche la matrice 'next' de manière lisible.
-        Contient les indices du prochain sommet sur le chemin optimal.
+        Affiche la matrice P de manière lisible.
+        Contient les indices des predecesseurs sur le chemin optimal.
         
         Args:
             titre: titre à afficher
             
         Returns:
-            str: représentation formatée de la matrice next
+            str: représentation formatée de la matrice P
         """
         if matrice_next is None:
             matrice_next = self.next_matrice
@@ -162,15 +162,15 @@ def floyd_warshall(graphe):
     """
     n = graphe.nb_sommet
     
-    # Initialiser L et next
+    # Initialiser L et P (matrice des predecesseurs)
     L = deepcopy(graphe.matrice)
     next_matrice = [[None] * n for _ in range(n)]
     
-    # Initialiser la matrice next: si arc direct, le prochain sommet est j
+    # Initialiser la matrice P: si arc direct i->j, le predecesseur de j est i
     for i in range(n):
         for j in range(n):
             if i != j and L[i][j] != float('inf'):
-                next_matrice[i][j] = j
+                next_matrice[i][j] = i
     
     # Sauvegarder matrices intermédiaires
     matrices_l_intermediaires = []
@@ -191,7 +191,7 @@ def floyd_warshall(graphe):
                     nouveau_poids = L[i][k] + L[k][j]
                     if nouveau_poids < L[i][j]:
                         L[i][j] = nouveau_poids
-                        next_matrice[i][j] = next_matrice[i][k]
+                        next_matrice[i][j] = next_matrice[k][j]
         
         # Sauvegarder L_k après l'itération k
         matrices_l_intermediaires.append(deepcopy(L))
@@ -228,7 +228,7 @@ def extraire_chemin(graphe, source, destination):
     Extrait le chemin de poids minimal de source à destination.
     
     Args:
-        graphe: objet Graphe (doit avoir next_matrice remplie par Floyd-Warshall)
+        graphe: objet Graphe (doit avoir la matrice P remplie par Floyd-Warshall)
         source: index du sommet source
         destination: index du sommet destination
         
@@ -247,16 +247,18 @@ def extraire_chemin(graphe, source, destination):
     if L_final[source][destination] == float('inf'):
         return [], float('inf')
     
-    chemin = [source]
-    courant = source
-    
-    # Suivre les indices next jusqu'à destination
-    while courant != destination:
-        prochain = graphe.next_matrice[courant][destination]
-        if prochain is None:
+    chemin = [destination]
+    courant = destination
+
+    # Remonter les predecesseurs depuis la destination jusqu'a la source
+    while courant != source:
+        precedent = graphe.next_matrice[source][courant]
+        if precedent is None:
             return [], float('inf')  # Pas de chemin
-        chemin.append(prochain)
-        courant = prochain
+        chemin.append(precedent)
+        courant = precedent
+
+    chemin.reverse()
     
     distance = L_final[source][destination]
     return chemin, distance
