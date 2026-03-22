@@ -77,8 +77,10 @@ class Graphe:
         
         largeur = largeur_max + 1
         
+        largeur_index = max(len(str(self.nb_sommet - 1)), 1)
+
         # En-tête avec indices des colonnes
-        entete = "  K |"
+        entete = f"{'K':>{largeur_index}} |"
         for j in range(self.nb_sommet):
             entete += f"{j:>{largeur}}"
         resultat += entete + "\n"
@@ -86,7 +88,7 @@ class Graphe:
         
         # Lignes de la matrice
         for i in range(len(matrice)):
-            ligne = f" {i}  |"
+            ligne = f"{i:>{largeur_index}} |"
             for j in range(len(matrice[0])):
                 val = matrice[i][j]
                 if val == float('inf'):
@@ -123,8 +125,10 @@ class Graphe:
         
         largeur = 6
         
+        largeur_index = max(len(str(self.nb_sommet - 1)), 1)
+
         # En-tête
-        entete = "  K |"
+        entete = f"{'K':>{largeur_index}} |"
         for j in range(self.nb_sommet):
             entete += f"{j:>{largeur}}"
         resultat += entete + "\n"
@@ -132,7 +136,7 @@ class Graphe:
         
         # Lignes
         for i in range(len(matrice_next)):
-            ligne = f" {i}  |"
+            ligne = f"{i:>{largeur_index}} |"
             for j in range(len(matrice_next[0])):
                 val = matrice_next[i][j]
                 if val is None:

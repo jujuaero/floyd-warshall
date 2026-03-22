@@ -14,8 +14,8 @@ def charger_graphe():
     
     try:
         numero = int(entry_numero.get())
-        if numero < 1 or numero > 13:
-            raise ValueError("Le numéro doit être compris entre 1 et 13.")
+        if numero < 1:
+            raise ValueError("Le numéro doit être positif.")
         
         nom_fichier = f"graphe{numero}.txt"
         graphe_actuel = Graphe.lire_graphe_depuis_fichier(nom_fichier)
