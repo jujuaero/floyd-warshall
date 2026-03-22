@@ -23,75 +23,24 @@ class Graphe:
         Ligne 2: nombre d'arcs
         Lignes suivantes: depart arrivee poids
         
-        Args:
-            nom_fichier: nom du fichier (sans le chemin, cherche dans le dossier 'graphes/')
-            
-        Returns:
-            Graphe: l'objet graphe chargé
         """
         graphe = Graphe()
         chemin_fichier = os.path.join("graphes", nom_fichier)
-        
-        # utf-8-sig supprime automatiquement un BOM eventuel en debut de fichier
+
         with open(chemin_fichier, 'r', encoding='utf-8-sig') as f:
             lignes = [ligne.strip() for ligne in f.readlines() if ligne.strip()]
-        
-        if not lignes:
-            raise ValueError("Fichier graphe vide")
-        
-        if len(lignes) < 2:
-            raise ValueError(
-                "Format invalide: le fichier doit contenir au moins 2 lignes "
-                "(nombre de sommets, nombre d'arcs)."
-            )
 
         graphe.nb_sommet = int(lignes[0])
         graphe.nb_arrete = int(lignes[1])
 
-        if graphe.nb_sommet < 0 or graphe.nb_arrete < 0:
-            raise ValueError("Le nombre de sommets et d'arcs doit etre positif ou nul.")
-
-        lignes_arcs = lignes[2:]
-        if len(lignes_arcs) != graphe.nb_arrete:
-            raise ValueError(
-                f"Format invalide: {graphe.nb_arrete} arcs annonces mais "
-                f"{len(lignes_arcs)} lignes d'arcs trouvees."
-            )
-        
         # Initialiser matrice avec l'infini partout, 0 sur la diagonale
         graphe.matrice = [[float('inf')] * graphe.nb_sommet for _ in range(graphe.nb_sommet)]
         for i in range(graphe.nb_sommet):
             graphe.matrice[i][i] = 0
-        
+
         # Remplir la matrice avec les arcs au format: depart arrivee poids
-        # Variante acceptee: "2 0-25" (poids negatif colle a l'arrivee).
-        for idx, ligne in enumerate(lignes_arcs, start=3):
-            parties = ligne.split()
-
-            if len(parties) == 3:
-                depart = int(parties[0])
-                arrivee = int(parties[1])
-                poids = int(parties[2])
-            elif len(parties) == 2:
-                # Cas de saisie compactee: "arrivee" et "poids" colles, ex: "0-25"
-                m = re.fullmatch(r"(\d+)(-\d+)", parties[1])
-                if not m:
-                    raise ValueError(
-                        f"Ligne {idx} invalide: attendu 'depart arrivee poids'."
-                    )
-                depart = int(parties[0])
-                arrivee = int(m.group(1))
-                poids = int(m.group(2))
-            else:
-                raise ValueError(
-                    f"Ligne {idx} invalide: attendu 'depart arrivee poids'."
-                )
-
-            if not (0 <= depart < graphe.nb_sommet and 0 <= arrivee < graphe.nb_sommet):
-                raise ValueError(
-                    f"Ligne {idx} invalide: sommets hors bornes [0, {graphe.nb_sommet - 1}]."
-                )
-
+        for ligne in lignes[2:]:
+            depart, arrivee, poids = map(int, ligne.split())
             graphe.matrice[depart][arrivee] = poids
         
         return graphe

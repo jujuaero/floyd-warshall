@@ -24,7 +24,7 @@ def charger_graphe():
         matrices_P_intermediaires = None
         
         # Afficher le graphe chargé
-        affichage = f"✓ Graphe {numero} chargé avec succès !\n"
+        affichage = f"  Graphe {numero} chargé avec succès !\n"
         affichage += f"  Sommets: {graphe_actuel.nb_sommet}\n"
         affichage += f"  Arcs: {graphe_actuel.nb_arrete}\n"
         affichage += graphe_actuel.afficher_matrice_formatee(titre="Matrice d'adjacence du graphe")
@@ -78,11 +78,11 @@ def executer_floyd_warshall():
         affichage += "=" * 80 + "\n"
         circuits = contient_circuit_absorbant(matrice_L_finale)
         if circuits:
-            affichage += "⚠️  CIRCUIT ABSORBANT DÉTECTÉ !\n"
+            affichage += "CIRCUIT ABSORBANT DÉTECTÉ !\n"
             affichage += "La matrice contient au moins une valeur négative sur la diagonale.\n"
             affichage += "Traitement ARRÊTÉ. Pas d'affichage de chemins.\n"
         else:
-            affichage += "✓ Pas de circuit absorbant détecté.\n"
+            affichage += "Pas de circuit absorbant détecté.\n"
             affichage += "Les chemins de valeur minimale peuvent être affichés.\n"
         
         text_output.config(state=tk.NORMAL)
