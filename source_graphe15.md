@@ -1,7 +1,5 @@
-# Source et methode - graphe15 (dump manuel reel)
-
 ## Nature du jeu de donnees
-Le fichier `graphes/graphe15.txt` est un **dump manuel reel** de topologie du metro parisien, construit a partir de l'ordre reel des stations sur trois lignes :
+Le fichier `graphes/graphe15.txt` est une modelisation topologique du metro parisien, construit a partir de l'ordre reel des stations sur trois lignes :
 - Metro ligne 1 (troncon Ouest-Centre-Est)
 - Metro ligne 4 (troncon Nord-Centre-Sud)
 - Metro ligne 14 (troncon Nord-Centre-Sud-Est)
