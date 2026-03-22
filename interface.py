@@ -5,11 +5,12 @@ from structure import *
 # Variable globale pour stocker le graphe actuel
 graphe_actuel = None
 matrice_L_finale = None
-matrices_intermediaires = None
+matrices_L_intermediaires = None
+matrices_P_intermediaires = None
 
 def charger_graphe():
     """Charge un graphe depuis un fichier numéroté"""
-    global graphe_actuel, matrice_L_finale, matrices_intermediaires
+    global graphe_actuel, matrice_L_finale, matrices_L_intermediaires, matrices_P_intermediaires
     
     try:
         numero = int(entry_numero.get())
@@ -19,7 +20,8 @@ def charger_graphe():
         nom_fichier = f"graphe{numero}.txt"
         graphe_actuel = Graphe.lire_graphe_depuis_fichier(nom_fichier)
         matrice_L_finale = None
-        matrices_intermediaires = None
+        matrices_L_intermediaires = None
+        matrices_P_intermediaires = None
         
         # Afficher le graphe chargé
         affichage = f"✓ Graphe {numero} chargé avec succès !\n"
@@ -46,7 +48,7 @@ def charger_graphe():
 
 def executer_floyd_warshall():
     """Exécute l'algorithme de Floyd-Warshall"""
-    global graphe_actuel, matrice_L_finale, matrices_intermediaires
+    global graphe_actuel, matrice_L_finale, matrices_L_intermediaires, matrices_P_intermediaires
     
     if graphe_actuel is None:
         messagebox.showwarning("Attention", "Veuillez d'abord charger un graphe.")
@@ -54,23 +56,23 @@ def executer_floyd_warshall():
     
     try:
         # Exécuter l'algorithme
-        matrice_L_finale, matrices_intermediaires, k_valides = floyd_warshall(graphe_actuel)
+        matrice_L_finale, matrices_L_intermediaires, matrices_P_intermediaires, k_valides = floyd_warshall(graphe_actuel)
         
         # Affichage des résultats
         affichage = "EXÉCUTION DE FLOYD-WARSHALL\n"
         affichage += "=" * 80 + "\n\n"
         
         # Afficher toutes les matrices intermédiaires
-        for idx, (k, matrice) in enumerate(zip(k_valides, matrices_intermediaires)):
+        for k, matrice_l, matrice_p in zip(k_valides, matrices_L_intermediaires, matrices_P_intermediaires):
             if k == -1:
-                affichage += graphe_actuel.afficher_matrice_formatee(matrice, titre="L_0 (Initialisation)")
+                affichage += graphe_actuel.afficher_matrice_formatee(matrice_l, titre="L_0 (Initialisation)")
+                affichage += "\n\n"
+                affichage += graphe_actuel.afficher_matrice_next_formatee(matrice_p, titre="P_0 (Initialisation des chemins)")
             else:
-                affichage += graphe_actuel.afficher_matrice_formatee(matrice, titre=f"L_{k} (Après itération k={k})")
+                affichage += graphe_actuel.afficher_matrice_formatee(matrice_l, titre=f"L_{k} (Après itération k={k})")
+                affichage += "\n\n"
+                affichage += graphe_actuel.afficher_matrice_next_formatee(matrice_p, titre=f"P_{k} (Après itération k={k})")
             affichage += "\n\n"
-        
-        # Afficher matrice next
-        affichage += graphe_actuel.afficher_matrice_next_formatee()
-        affichage += "\n\n"
         
         # Détection circuit absorbant
         affichage += "=" * 80 + "\n"
@@ -135,11 +137,12 @@ def afficher_chemin():
 
 def nouveau_graphe():
     """Réinitialise pour charger un nouveau graphe"""
-    global graphe_actuel, matrice_L_finale, matrices_intermediaires
+    global graphe_actuel, matrice_L_finale, matrices_L_intermediaires, matrices_P_intermediaires
     
     graphe_actuel = None
     matrice_L_finale = None
-    matrices_intermediaires = None
+    matrices_L_intermediaires = None
+    matrices_P_intermediaires = None
     
     entry_numero.delete(0, tk.END)
     entry_source.delete(0, tk.END)

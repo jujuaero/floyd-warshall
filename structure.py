@@ -152,7 +152,7 @@ class Graphe:
         resultat += "=" * 80
         return resultat
     
-    def afficher_matrice_next_formatee(self, titre="Matrice Next (chemins)"):
+    def afficher_matrice_next_formatee(self, matrice_next=None, titre="Matrice Next (chemins)"):
         """
         Affiche la matrice 'next' de manière lisible.
         Contient les indices du prochain sommet sur le chemin optimal.
@@ -163,7 +163,10 @@ class Graphe:
         Returns:
             str: représentation formatée de la matrice next
         """
-        if not self.next_matrice:
+        if matrice_next is None:
+            matrice_next = self.next_matrice
+
+        if not matrice_next:
             return ""
         
         resultat = f"\n{titre}\n"
@@ -179,10 +182,10 @@ class Graphe:
         resultat += "-" * len(entete) + "\n"
         
         # Lignes
-        for i in range(len(self.next_matrice)):
+        for i in range(len(matrice_next)):
             ligne = f" {i}  |"
-            for j in range(len(self.next_matrice[0])):
-                val = self.next_matrice[i][j]
+            for j in range(len(matrice_next[0])):
+                val = matrice_next[i][j]
                 if val is None:
                     s = "-"
                 else:
@@ -202,9 +205,10 @@ def floyd_warshall(graphe):
         graphe: objet Graphe à traiter
         
     Returns:
-        tuple: (matrice_finale, liste_matrices_intermediaires, liste_k_valides)
+        tuple: (matrice_finale, liste_matrices_L_intermediaires, liste_matrices_P_intermediaires, liste_k_valides)
         - matrice_finale: matrice L finale après l'algorithme
-        - liste_matrices_intermediaires: [L_0, L_1, ..., L_{n-1}] avant chaque itération k
+        - liste_matrices_L_intermediaires: [L_0, L_1, ..., L_{n-1}] avant/après itérations
+        - liste_matrices_P_intermediaires: [P_0, P_1, ..., P_{n-1}] avant/après itérations
         - liste_k_valides: indices k pour lesquels les matrices ont été sauvegardées
     """
     n = graphe.nb_sommet
@@ -220,11 +224,13 @@ def floyd_warshall(graphe):
                 next_matrice[i][j] = j
     
     # Sauvegarder matrices intermédiaires
-    matrices_intermediaires = []
+    matrices_l_intermediaires = []
+    matrices_p_intermediaires = []
     k_valides = []
     
     # L_0: avant la première itération
-    matrices_intermediaires.append(deepcopy(L))
+    matrices_l_intermediaires.append(deepcopy(L))
+    matrices_p_intermediaires.append(deepcopy(next_matrice))
     k_valides.append(-1)  # -1 pour L_0 (avant toute itération)
     
     # Boucles de Floyd-Warshall
@@ -239,14 +245,15 @@ def floyd_warshall(graphe):
                         next_matrice[i][j] = next_matrice[i][k]
         
         # Sauvegarder L_k après l'itération k
-        matrices_intermediaires.append(deepcopy(L))
+        matrices_l_intermediaires.append(deepcopy(L))
+        matrices_p_intermediaires.append(deepcopy(next_matrice))
         k_valides.append(k)
     
     # Sauvegarder les matrices finales dans le graphe
     graphe.matrice = L  # Mettre à jour la matrice du graphe avec les distances minimales
     graphe.next_matrice = next_matrice
     
-    return L, matrices_intermediaires, k_valides
+    return L, matrices_l_intermediaires, matrices_p_intermediaires, k_valides
 
 
 def contient_circuit_absorbant(matrice_l):
