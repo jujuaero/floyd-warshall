@@ -1,2 +1,12 @@
-﻿Il faut executer interface.py puis rentrer le numéro de l'automate.
-Pour le test de mot, il faut ecrire dans l'entré situé sous l'automate le mot que l'on souhaite reconnaitre et cliquer sur "est reconnu?"
+﻿UTILISATION DU PROGRAMME
+
+\-> Lancer Interface.py
+
+\-> L'interface graphique devrait apparaitre
+
+\-> Rentrer le numéro de graphe à étudier
+
+\-> Sélectionner Floyd-Warshall
+
+\-> Une fois l'algorithme déployé, saisir le chemin à vérifier.
+
